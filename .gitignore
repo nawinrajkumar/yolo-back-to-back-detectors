@@ -1,0 +1,4 @@
+venv
+*.onnx
+*.pt
+*.engine
