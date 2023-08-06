@@ -1,7 +1,1 @@
-Auto
-Bike
-Bus
-Tractor
-Traveller
-Truck
-car
+indian_licence_plate

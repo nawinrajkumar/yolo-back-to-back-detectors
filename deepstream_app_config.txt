@@ -55,7 +55,26 @@ enable=1
 gpu-id=0
 gie-unique-id=1
 nvbuf-memory-type=0
-config-file=yolov5.txt
+config-file=yolov5_vehicle.txt
+
+[tracker]
+enable=1
+# For NvDCF and DeepSORT tracker, tracker-width and tracker-height must be a multiple of 32, respectively
+tracker-width=640
+tracker-height=384
+ll-config-file=/home/nawin/Projects/traffic-flow/config_tracker_DeepSORT.yml
+ll-lib-file=/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so
+gpu-id=0
+enable-batch-process=1
+enable-past-frame=1
+display-tracking-id=1
+
+[secondary-gie]
+enable=1
+gpu-id=0
+gie-unique-id=1
+nvbuf-memory-type=0
+config-file=yolov5_vehicle.txt
 
 [tests]
 file-loop=0
