@@ -1,10 +1,3 @@
-
-/*******************************************************************************
- * Blah Blah Blah License
- * You are free to play around and publish the code anywhere you want.
- * Author: Chirag Shetty
- *******************************************************************************/
-
 #include <gst/gst.h>
 #include <glib.h>
 #include <stdio.h>
@@ -78,13 +71,14 @@ int main (int argc, char *argv[]){
 
   /* Create gstreamer elements */
   /* Create Pipeline element that will form a connection of other elements */
-  pipeline = gst_pipeline_new ("deepstream_tutorial_app1");
+  pipeline = gst_pipeline_new ("traffic-flow");
 
   /* Input File source element */
-  source = gst_element_factory_make ("filesrc", "file-source");
+  // source = gst_element_factory_make ("v4l2src", "file-source");
+  source = gst_element_factory_make ("v4l2src", "source");
 
   /* QTDemux for demuxing different type of input streams */
-  qtdemux = gst_element_factory_make ("qtdemux", "qtdemux");
+  // qtdemux = gst_element_factory_make ("qtdemux", "qtdemux");
 
   /* Since the data format in the input file is elementary h264 stream,
    * we need a h264parser */
@@ -99,8 +93,6 @@ int main (int argc, char *argv[]){
   /* Use nvinfer to run inferencing on decoder's output,
    * behaviour of inferencing is set through config file */
   pgie = gst_element_factory_make ("nvinfer", "primary-nvinference-engine");
-
-  /* Assigns track ids to detected bounding boxes*/
 
   /* For Detection of number plates*/
   sgie = gst_element_factory_make ("nvinfer", "secondary-nvinference-engine");
@@ -117,7 +109,7 @@ int main (int argc, char *argv[]){
   /* Use convertor to convert from NV12 to RGBA as required by nvosd */
   nvvidconv2 = gst_element_factory_make ("nvvideoconvert", "nvvideo-converter2");
 
-  /* Use convertor to convert from NV12 to H264 as required */
+  // /* Use convertor to convert from NV12 to H264 as required */
   nvv4l2h264enc = gst_element_factory_make ("nvv4l2h264enc", "nvv4l2h264enc");
 
   /* Since the data format for the output file is elementary h264 stream,
@@ -126,24 +118,26 @@ int main (int argc, char *argv[]){
 
   qtmux = gst_element_factory_make ("qtmux", "qtmux");
 
-  sink = gst_element_factory_make ("filesink", "filesink");
+  sink = gst_element_factory_make ("nveglglessink", "sink");
 
-  if (!pipeline || !source || !h264parser || !qtdemux ||
+
+  if (!pipeline || !source || !h264parser || /*!qtdemux ||*/
       !nvv4l2decoder || !streammux || !pgie || !sgie || !tracker ||
-      !nvvidconv || !nvosd || !nvvidconv2 || !nvv4l2h264enc || 
-      !h264parser2 || !qtmux || !sink) {
+      !nvvidconv || !nvosd || !nvvidconv2  || !sink ||
+      !h264parser2 || !qtmux ||  !nvv4l2h264enc)
+       {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
 
 
   /* we set the input filename to the source element */
-  g_object_set (
+  /*g_object_set (
     G_OBJECT (source), 
     "location", 
     argv[1], 
     NULL
-  );
+  );*/
 
   g_object_set (
     G_OBJECT (streammux), 
@@ -184,12 +178,11 @@ int main (int argc, char *argv[]){
     );
 
   /* Set output file location */
-  g_object_set (
-      G_OBJECT (sink),
-      "location", 
-      "output.mp4", 
+  /*g_object_set (
+      G_OBJECT (sink), 
+      "ximagesink",
       NULL
-    );
+    );*/
 
   /* we add a message handler */
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -202,7 +195,7 @@ int main (int argc, char *argv[]){
   * a valid video stream is found in the input
   * in that case only the pipeline will be linked
   */
-  g_signal_connect (qtdemux, "pad-added", G_CALLBACK (cb_new_pad), h264parser);
+  // g_signal_connect (qtdemux, "pad-added", G_CALLBACK (cb_new_pad), h264parser);
 
   /* Set up the pipeline */
   /* we add all elements into the pipeline */
@@ -219,9 +212,6 @@ int main (int argc, char *argv[]){
     nvvidconv, 
     nvosd,
     nvvidconv2,
-    nvv4l2h264enc,
-    h264parser2,
-    qtmux,
     sink, 
     NULL
   );
@@ -267,17 +257,23 @@ int main (int argc, char *argv[]){
    * nvinfer -> tracker -> nvvidconv -> nvosd -> nvvidconv2 -> 
    * nvh264-encoder -> qtmux -> filesink 
   */
-  if (!gst_element_link_many (source, qtdemux, NULL)) {
+  /*if (!gst_element_link_many (source, qtdemux, NULL)) {
     g_printerr ("Source and QTDemux could not be linked: 1. Exiting.\n");
     return -1;
-  }
+  }*/
 
-  if (!gst_element_link_many (h264parser, nvv4l2decoder, NULL)) {
-    g_printerr ("H264Parse and NvV4l2-Decoder could not be linked: 2. Exiting.\n");
+
+  if (!gst_element_link_many (source, nvv4l2decoder, NULL)) {
+    g_printerr ("source and NvV4l2-Decoder could not be linked: 2. Exiting.\n");
     return -1;
   }
 
-  if (!gst_element_link_many (streammux, pgie, sgie, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
+  /*if (!gst_element_link_many (h264parser, nvv4l2decoder, NULL)) {
+    g_printerr ("H264Parse and NvV4l2-Decoder could not be linked: 2. Exiting.\n");
+    return -1;
+  }*/
+
+  if (!gst_element_link_many (streammux, pgie, sgie, tracker, nvvidconv, nvosd, nvvidconv2, sink, NULL)) {
     g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
     return -1;
   }
