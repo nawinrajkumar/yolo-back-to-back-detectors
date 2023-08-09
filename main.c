@@ -73,8 +73,8 @@ int main (int argc, char *argv[]){
   /* Create Pipeline element that will form a connection of other elements */
   pipeline = gst_pipeline_new ("traffic-flow");
 
-  /* Input File source element */
-  // source = gst_element_factory_make ("v4l2src", "file-source");
+  /* Input File source element */ v4l2src
+  // source = gst_element_factory_make ("filesrc", "file-source");
   source = gst_element_factory_make ("v4l2src", "source");
 
   /* QTDemux for demuxing different type of input streams */
