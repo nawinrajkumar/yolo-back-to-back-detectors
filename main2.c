@@ -167,7 +167,7 @@ int main (int argc, char *argv[]){
   g_object_set (
       G_OBJECT (sgie),
       "config-file-path", 
-      "/home/nawin/Projects/Traffic-Flow-Deployment/configs/numberplate/numberplate.txt", 
+      "configs/numberplate/numberplate.txt", 
       NULL
     );
 
@@ -275,7 +275,7 @@ int main (int argc, char *argv[]){
     return -1;
   }
 
-  if (!gst_element_link_many (streammux, pgie, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, sgie, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
     g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
     return -1;
   }
