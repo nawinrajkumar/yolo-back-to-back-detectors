@@ -1,0 +1,1 @@
+/usr/src/tensorrt/bin/trtexec--onnx=ocrnet.onnx --minShapes=input:<bs>x1x32x100 --optShapes=input:<bs>x1x32x100 --maxShapes=input:<bs>x1x32x100 --fp16 --saveEngine=ocrnet.fp16.engine
