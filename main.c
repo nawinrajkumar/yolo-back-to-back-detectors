@@ -1,8 +1,5 @@
-
 /*******************************************************************************
- * Blah Blah Blah License
- * You are free to play around and publish the code anywhere you want.
- * Author: Chirag Shetty
+ * Author: Nawin Raj Kumar
  *******************************************************************************/
 
 #include <gst/gst.h>
@@ -10,6 +7,8 @@
 #include <stdio.h>
 #include <cuda_runtime_api.h>
 #include "gstnvdsmeta.h"
+#include "MQTTClient.h"
+
 
 /* The muxer output resolution must be set if the input streams will be of
  * different resolution. The muxer will scale all the input frames to this
@@ -20,12 +19,56 @@
 /* Muxer batch formation timeout, for e.g. 40 millisec. Should ideally be set
  * based on the fastest source's framerate. */
 #define MUXER_BATCH_TIMEOUT_USEC 40000
+#define MAX_DISPLAY_LEN 64
+
+gint frame_number = 0;
+
 
 static GstPadProbeReturn
 osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     gpointer u_data)
 {
-  g_print("Hello World!");
+
+  GstBuffer *buf = (GstBuffer *) info->data;
+  guint num_rects = 0;
+  NvDsObjectMeta *obj_meta = NULL;
+  NvDsMetaList * l_frame = NULL;
+  NvDsMetaList * l_obj = NULL;
+  NvDsDisplayMeta *display_meta = NULL;
+  NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
+  for(l_frame = batch_meta->frame_meta_list; l_frame=NULL; l_frame = l_frame->next){
+    NvDsFrameMeta *frame_meta = (NvDsFrameMeta *) (l_frame->data);
+    int offset = 0;
+    display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
+    NvOSD_TextParams *txt_params  = &display_meta->text_params[0];
+    display_meta->num_labels = 1;
+    offset = snprintf(txt_params->display_text, MAX_DISPLAY_LEN, "Person");
+    offset = snprintf(txt_params->display_text + offset , MAX_DISPLAY_LEN, "Vehicle");
+    txt_params->x_offset = 10;
+    txt_params->y_offset = 12;
+
+    /* Font , font-color and font-size */
+    txt_params->font_params.font_name = "Serif";
+    txt_params->font_params.font_size = 10;
+    txt_params->font_params.font_color.red = 1.0;
+    txt_params->font_params.font_color.green = 1.0;
+    txt_params->font_params.font_color.blue = 1.0;
+    txt_params->font_params.font_color.alpha = 1.0;
+
+    /* Text background color */
+    txt_params->set_bg_clr = 1;
+    txt_params->text_bg_clr.red = 0.0;
+    txt_params->text_bg_clr.green = 0.0;
+    txt_params->text_bg_clr.blue = 0.0;
+    txt_params->text_bg_clr.alpha = 1.0;
+
+    nvds_add_display_meta_to_frame(frame_meta, display_meta);   
+  }
+    g_print ("Frame Number  Number of objects "
+            "Vehicle Count  Person Count ");
+    frame_number++;
+    return GST_PAD_PROBE_OK;
+
 }
 
 static gboolean bus_call (GstBus * bus, GstMessage * msg, gpointer data){
@@ -64,6 +107,24 @@ void cb_new_pad (GstElement *qtdemux, GstPad* pad, gpointer data) {
 }
 
 int main (int argc, char *argv[]){
+  // MQTTClient client;
+  // MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+  // MQTTClient_message pubmsg = MQTTClient_message_initializer;
+  // MQTTClient_deliveryToken token;
+  // int rc;
+
+  // MQTTClient_create(&client, ADDRESS, CLIENTID,
+  //     MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  // conn_opts.keepAliveInterval = 20;
+  // conn_opts.cleansession = 1;
+
+  // if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+  // {
+  //     printf("Failed to connect, return code %d\n", rc);
+  //     exit(-1);
+  // }
+
+
   GMainLoop *loop = NULL;
   GstElement *pipeline = NULL, *source = NULL, *h264parser = NULL, *nvv4l2h264enc = NULL, *qtdemux = NULL,
              *nvv4l2decoder = NULL, *streammux = NULL, *sink = NULL, *nvvidconv = NULL, *qtmux = NULL,
