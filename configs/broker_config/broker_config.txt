@@ -1,0 +1,4 @@
+[message-broker]
+proto-lib = /home/nawin/Projects/Traffic-Flow-Deployment/configs/broker_config/broker_config.txt
+conn-str = localhost;1883
+topic = traffic-flow

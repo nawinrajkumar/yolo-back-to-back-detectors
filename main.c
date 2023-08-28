@@ -60,7 +60,7 @@ int main (int argc, char *argv[]){
   GMainLoop *loop = NULL;
   GstElement *pipeline = NULL, *source = NULL, *h264parser = NULL, *nvv4l2h264enc = NULL, *qtdemux = NULL,
              *nvv4l2decoder = NULL, *streammux = NULL, *sink = NULL, *nvvidconv = NULL, *qtmux = NULL,
-             *pgie = NULL, *sgie = NULL, *tracker = NULL, *nvvidconv2 = NULL, *nvosd = NULL, *h264parser2 = NULL;
+             *pgie = NULL, *numberplate = NULL, *ocr = NULL,  *tracker = NULL, *nvvidconv2 = NULL, *nvosd = NULL, *h264parser2 = NULL;
 
   GstElement *transform = NULL;
   GstBus *bus = NULL;
@@ -78,7 +78,7 @@ int main (int argc, char *argv[]){
 
   /* Create gstreamer elements */
   /* Create Pipeline element that will form a connection of other elements */
-  pipeline = gst_pipeline_new ("traffic-flow");
+  pipeline = gst_pipeline_new ("deepstream_tutorial_app1");
 
   /* Input File source element */
   source = gst_element_factory_make ("filesrc", "file-source");
@@ -100,7 +100,9 @@ int main (int argc, char *argv[]){
    * behaviour of inferencing is set through config file */
   pgie = gst_element_factory_make ("nvinfer", "primary-nvinference-engine");
 
-  sgie = gst_element_factory_make ("nvinfer", "secondary-nvinference-engine");
+  numberplate = gst_element_factory_make ("nvinfer", "numberplate-nvinference-engine");
+
+  ocr = gst_element_factory_make ("nvinfer", "ocr-nvinference-engine");
 
   /* Assigns track ids to detected bounding boxes*/
   tracker = gst_element_factory_make ("nvtracker", "tracker");
@@ -123,11 +125,12 @@ int main (int argc, char *argv[]){
 
   qtmux = gst_element_factory_make ("qtmux", "qtmux");
 
-  sink = gst_element_factory_make ("filesink", "filesink");
-  //sink = gst_element_factory_make ("nveglglessink", "sink");
+  //sink = gst_element_factory_make ("filesink", "filesink");
+  sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
+
 
   if (!pipeline || !source || !h264parser || !qtdemux ||
-      !nvv4l2decoder || !streammux || !pgie || !sgie || !tracker || 
+      !nvv4l2decoder || !streammux || !pgie || !numberplate || !ocr || !tracker || 
       !nvvidconv || !nvosd || !nvvidconv2 || !nvv4l2h264enc || 
       !h264parser2 || !qtmux || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
@@ -165,12 +168,18 @@ int main (int argc, char *argv[]){
     );
 
   g_object_set (
-      G_OBJECT (sgie),
-      "config-file-path", 
-      "configs/numberplate/numberplate.txt", 
-      NULL
-    );
+    G_OBJECT (numberplate),
+    "config-file-path",
+    "configs/numberplate/numberplate.txt",
+    NULL
+  );
 
+  // g_object_set (
+  //   G_OBJECT (ocr),
+  //   "config-file-path",
+  //   "configs/ocr/ocr_config.txt",
+  //   NULL
+  // );
 
   /* Set all the necessary properties of the nvtracker element,
   * the necessary ones are : */
@@ -178,16 +187,18 @@ int main (int argc, char *argv[]){
       G_OBJECT (tracker),
       "ll-lib-file", 
       "/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so", 
+      "ll-config-file",
+      "/opt/nvidia/deepstream/deepstream/sources/apps/sample_apps/deepstream-test1/dstest1_tracker_config.txt",
       NULL
     );
 
   /* Set output file location */
-  g_object_set (
-      G_OBJECT (sink),
-      "location",
-      "output.mp4",
-      NULL
-    );
+  // g_object_set (
+  //     G_OBJECT (sink),
+  //     "location", 
+  //     "output.mp4", 
+  //     NULL
+  //   );
 
   /* we add a message handler */
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -212,14 +223,15 @@ int main (int argc, char *argv[]){
     nvv4l2decoder,
     streammux, 
     pgie,
-    sgie,
+    numberplate,
+    //ocr,
     tracker,
     nvvidconv, 
     nvosd,
-    nvvidconv2,
-    nvv4l2h264enc,
-    h264parser2,
-    qtmux,
+    //nvvidconv2,
+    //nvv4l2h264enc,
+    //h264parser2,
+    //qtmux,
     sink, 
     NULL
   );
@@ -275,9 +287,14 @@ int main (int argc, char *argv[]){
     return -1;
   }
 
-  if (!gst_element_link_many (streammux, pgie, sgie, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
-    g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
-    return -1;
+  // if (!gst_element_link_many (streammux, pgie, numberplate, ocr, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
+  //   g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
+  //   return -1;
+  // }
+
+  if (!gst_element_link_many (streammux, pgie, numberplate, tracker, nvvidconv, nvosd, sink, NULL)) {
+  g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
+  return -1;
   }
 
   /* Set the pipeline to "playing" state */

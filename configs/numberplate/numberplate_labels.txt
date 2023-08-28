@@ -1,7 +1,2 @@
-Auto
-Bike
-Bus
-Tractor
-Traveller
-Truck
-car
+numberplate
+
