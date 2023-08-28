@@ -21,6 +21,13 @@
  * based on the fastest source's framerate. */
 #define MUXER_BATCH_TIMEOUT_USEC 40000
 
+static GstPadProbeReturn
+osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
+    gpointer u_data)
+{
+  g_print("Hello World!");
+}
+
 static gboolean bus_call (GstBus * bus, GstMessage * msg, gpointer data){
   GMainLoop *loop = (GMainLoop *) data;
   switch (GST_MESSAGE_TYPE (msg)) {
@@ -65,6 +72,8 @@ int main (int argc, char *argv[]){
   GstElement *transform = NULL;
   GstBus *bus = NULL;
   guint bus_watch_id;
+  GstPad *osd_sink_pad = NULL;
+
 
   /* Check input arguments */
   if (argc != 2) {
@@ -296,6 +305,14 @@ int main (int argc, char *argv[]){
   g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
   return -1;
   }
+  osd_sink_pad = gst_element_get_static_pad (nvosd, "sink");
+  if (!osd_sink_pad)
+    g_print ("Unable to get sink pad\n");
+  else
+  gst_pad_add_probe (osd_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
+        osd_sink_pad_buffer_probe, NULL, NULL);
+  gst_object_unref (osd_sink_pad);
+
 
   /* Set the pipeline to "playing" state */
   g_print ("Using file: %s\n", argv[1]);
