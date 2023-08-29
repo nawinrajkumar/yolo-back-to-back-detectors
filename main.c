@@ -24,7 +24,6 @@
 #define ADDRESS     "tcp://localhost:1883"
 #define CLIENTID    "ExampleClientPub"
 #define TOPIC       "MQTT Examples"
-#define PAYLOAD     "Hello World!"
 #define QOS         1
 #define TIMEOUT     10000L
 
@@ -39,10 +38,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
   MQTTClient_message pubmsg = MQTTClient_message_initializer;
   MQTTClient_deliveryToken token;
-  pubmsg.payload = PAYLOAD;
-  pubmsg.payloadlen = strlen(PAYLOAD);
-  pubmsg.qos = QOS;
-  pubmsg.retained = 0;
+
   int rc;
 
   MQTTClient_create(&client, ADDRESS, CLIENTID,
@@ -52,7 +48,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
 
   if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
   {
-      printf("Failed to connect, return code %d\n", rc);
+      g_print("Failed to connect, return code %d\n", rc);
       exit(-1);
   }
   GstBuffer *buf = (GstBuffer *) info->data;
@@ -89,9 +85,17 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     txt_params->text_bg_clr.alpha = 1.0;
 
     nvds_add_display_meta_to_frame(frame_meta, display_meta); 
-    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-     
   }
+    pubmsg.payload = frame_meta;
+    pubmsg.payloadlen = strlen(frame_meta);
+    pubmsg.qos = QOS;
+    pubmsg.retained = 0;
+    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
+    g_print("Waiting for up to %d seconds for publication of %s\n"
+            "on topic %s for client with ClientID: %s\n",
+            (int)(TIMEOUT/1000), frame_meta, TOPIC, CLIENTID);
+    rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
+    g_print("Message with delivery token %d delivered\n", token);
     // g_print ("Frame Number  Number of objects "
     //         "Vehicle Count  Person Count ");
     frame_number++;
