@@ -46,6 +46,8 @@ LIBS+= -L$(LIB_INSTALL_DIR) -lnvdsgst_meta -lnvds_meta \
  -L/usr/local/cuda-$(CUDA_VER)/lib64/ -lcudart \
  -lcuda -Wl,-rpath,$(LIB_INSTALL_DIR)
 
+LIBS+= -l paho-mqtt3c
+
 all: $(APP)
 
 %.o: %.c $(INCS) Makefile

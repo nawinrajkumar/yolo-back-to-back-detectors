@@ -21,6 +21,13 @@
 #define MUXER_BATCH_TIMEOUT_USEC 40000
 #define MAX_DISPLAY_LEN 64
 
+#define ADDRESS     "tcp://localhost:1883"
+#define CLIENTID    "ExampleClientPub"
+#define TOPIC       "MQTT Examples"
+#define PAYLOAD     "Hello World!"
+#define QOS         1
+#define TIMEOUT     10000L
+
 gint frame_number = 0;
 
 
@@ -28,7 +35,26 @@ static GstPadProbeReturn
 osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     gpointer u_data)
 {
+  MQTTClient client;
+  MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+  MQTTClient_message pubmsg = MQTTClient_message_initializer;
+  MQTTClient_deliveryToken token;
+  pubmsg.payload = PAYLOAD;
+  pubmsg.payloadlen = strlen(PAYLOAD);
+  pubmsg.qos = QOS;
+  pubmsg.retained = 0;
+  int rc;
 
+  MQTTClient_create(&client, ADDRESS, CLIENTID,
+      MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  conn_opts.keepAliveInterval = 20;
+  conn_opts.cleansession = 1;
+
+  if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+  {
+      printf("Failed to connect, return code %d\n", rc);
+      exit(-1);
+  }
   GstBuffer *buf = (GstBuffer *) info->data;
   guint num_rects = 0;
   NvDsObjectMeta *obj_meta = NULL;
@@ -62,10 +88,12 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     txt_params->text_bg_clr.blue = 0.0;
     txt_params->text_bg_clr.alpha = 1.0;
 
-    nvds_add_display_meta_to_frame(frame_meta, display_meta);   
+    nvds_add_display_meta_to_frame(frame_meta, display_meta); 
+    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
+     
   }
-    g_print ("Frame Number  Number of objects "
-            "Vehicle Count  Person Count ");
+    // g_print ("Frame Number  Number of objects "
+    //         "Vehicle Count  Person Count ");
     frame_number++;
     return GST_PAD_PROBE_OK;
 
@@ -107,24 +135,6 @@ void cb_new_pad (GstElement *qtdemux, GstPad* pad, gpointer data) {
 }
 
 int main (int argc, char *argv[]){
-  // MQTTClient client;
-  // MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-  // MQTTClient_message pubmsg = MQTTClient_message_initializer;
-  // MQTTClient_deliveryToken token;
-  // int rc;
-
-  // MQTTClient_create(&client, ADDRESS, CLIENTID,
-  //     MQTTCLIENT_PERSISTENCE_NONE, NULL);
-  // conn_opts.keepAliveInterval = 20;
-  // conn_opts.cleansession = 1;
-
-  // if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-  // {
-  //     printf("Failed to connect, return code %d\n", rc);
-  //     exit(-1);
-  // }
-
-
   GMainLoop *loop = NULL;
   GstElement *pipeline = NULL, *source = NULL, *h264parser = NULL, *nvv4l2h264enc = NULL, *qtdemux = NULL,
              *nvv4l2decoder = NULL, *streammux = NULL, *sink = NULL, *nvvidconv = NULL, *qtmux = NULL,
@@ -357,15 +367,11 @@ int main (int argc, char *argv[]){
     return -1;
   }
 
-  // if (!gst_element_link_many (streammux, pgie, numberplate, ocr, tracker, nvvidconv, nvosd, nvvidconv2, nvv4l2h264enc, h264parser2, qtmux, sink, NULL)) {
-  //   g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
-  //   return -1;
-  // }
-
   if (!gst_element_link_many (streammux, pgie, numberplate, tracker, nvvidconv, nvosd, sink, NULL)) {
   g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
   return -1;
   }
+
   osd_sink_pad = gst_element_get_static_pad (nvosd, "sink");
   if (!osd_sink_pad)
     g_print ("Unable to get sink pad\n");
