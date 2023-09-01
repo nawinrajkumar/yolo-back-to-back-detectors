@@ -85,7 +85,6 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     txt_params->text_bg_clr.alpha = 1.0;
 
     nvds_add_display_meta_to_frame(frame_meta, display_meta); 
-  }
     pubmsg.payload = frame_meta;
     pubmsg.payloadlen = strlen(frame_meta);
     pubmsg.qos = QOS;
@@ -96,11 +95,13 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
             (int)(TIMEOUT/1000), frame_meta, TOPIC, CLIENTID);
     rc = MQTTClient_waitForCompletion(client, token, TIMEOUT);
     g_print("Message with delivery token %d delivered\n", token);
-    // g_print ("Frame Number  Number of objects "
-    //         "Vehicle Count  Person Count ");
-    frame_number++;
-    return GST_PAD_PROBE_OK;
+    g_print ("Frame Number  Number of objects "
+            "Vehicle Count  Person Count ");
+    }
 
+    frame_number++;
+
+    return GST_PAD_PROBE_OK;
 }
 
 static gboolean bus_call (GstBus * bus, GstMessage * msg, gpointer data){
@@ -142,7 +143,7 @@ int main (int argc, char *argv[]){
   GMainLoop *loop = NULL;
   GstElement *pipeline = NULL, *source = NULL, *h264parser = NULL, *nvv4l2h264enc = NULL, *qtdemux = NULL,
              *nvv4l2decoder = NULL, *streammux = NULL, *sink = NULL, *nvvidconv = NULL, *qtmux = NULL,
-             *pgie = NULL, *numberplate = NULL, *ocr = NULL,  *tracker = NULL, *nvvidconv2 = NULL, *nvosd = NULL, *h264parser2 = NULL;
+             *pgie = NULL, *sgie = NULL, *numberplate = NULL, *ocr = NULL,  *tracker = NULL, *nvvidconv2 = NULL, *nvosd = NULL, *h264parser2 = NULL;
 
   GstElement *transform = NULL;
   GstBus *bus = NULL;
@@ -184,6 +185,8 @@ int main (int argc, char *argv[]){
    * behaviour of inferencing is set through config file */
   pgie = gst_element_factory_make ("nvinfer", "primary-nvinference-engine");
 
+  sgie = gst_element_factory_make("nvinfer", "secondary-nvinference-engine");
+
   numberplate = gst_element_factory_make ("nvinfer", "numberplate-nvinference-engine");
 
   ocr = gst_element_factory_make ("nvinfer", "ocr-nvinference-engine");
@@ -214,7 +217,7 @@ int main (int argc, char *argv[]){
 
 
   if (!pipeline || !source || !h264parser || !qtdemux ||
-      !nvv4l2decoder || !streammux || !pgie || !numberplate || !ocr || !tracker || 
+      !nvv4l2decoder || !streammux || !pgie || !sgie || !numberplate || !ocr || !tracker || 
       !nvvidconv || !nvosd || !nvvidconv2 || !nvv4l2h264enc || 
       !h264parser2 || !qtmux || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
@@ -252,6 +255,13 @@ int main (int argc, char *argv[]){
     );
 
   g_object_set (
+    G_OBJECT (sgie),
+    "config-file-path",
+    "configs/vehicle/secondary_config.txt",
+    NULL
+  );
+
+  g_object_set (
     G_OBJECT (numberplate),
     "config-file-path",
     "configs/numberplate/numberplate.txt",
@@ -276,13 +286,6 @@ int main (int argc, char *argv[]){
       NULL
     );
 
-  /* Set output file location */
-  // g_object_set (
-  //     G_OBJECT (sink),
-  //     "location", 
-  //     "output.mp4", 
-  //     NULL
-  //   );
 
   /* we add a message handler */
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
@@ -307,15 +310,12 @@ int main (int argc, char *argv[]){
     nvv4l2decoder,
     streammux, 
     pgie,
+    sgie,
     numberplate,
     //ocr,
     tracker,
     nvvidconv, 
     nvosd,
-    //nvvidconv2,
-    //nvv4l2h264enc,
-    //h264parser2,
-    //qtmux,
     sink, 
     NULL
   );
@@ -371,7 +371,7 @@ int main (int argc, char *argv[]){
     return -1;
   }
 
-  if (!gst_element_link_many (streammux, pgie, numberplate, tracker, nvvidconv, nvosd, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, sgie, numberplate, tracker, nvvidconv, nvosd, sink, NULL)) {
   g_printerr ("Rest of the pipeline elements could not be linked: 3. Exiting.\n");
   return -1;
   }
