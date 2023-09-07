@@ -1,25 +1,9 @@
 [property]
-gpu-id=0
-net-scale-factor=1
-onnx-file=ocrnet_resnet50.onnx
-labelfile-path=ocr_config.txt
-# int8-calib-file=/opt/nvidia/deepstream/deepstream-6.1/samples/models/Secondary_CarMake/cal_trt.bin
-force-implicit-batch-dim=1
-batch-size=16
-# 0=FP32 and 1=INT8 mode
-network-mode=1
-input-object-min-width=64
-input-object-min-height=64
-process-mode=2
-model-color-format=1
-gpu-id=0
-gie-unique-id=2
-operate-on-gie-id=1
-operate-on-class-ids=1
-is-classifier=1
-output-blob-names=predictions/Softmax
-classifier-async-mode=1
-classifier-threshold=0.51
-process-mode=2
-#scaling-filter=0
-#scaling-compute-hw=0
+ocdnet-engine-path=ocdnet.fp16.engine
+ocdnet-input-shape=3,736,1280
+ocdnet-binarize-threshold=0.1
+ocdnet-polygon-threshold=0.3
+ocdnet-max-candidate=200
+ocrnet-engine-path=ocrnet.fp16.engine
+ocrnet-dict-path=character_list.txt
+ocrnet-input-shape=1,32,100
